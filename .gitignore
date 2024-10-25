@@ -1,0 +1,10 @@
+.env/
+__init__.py
+__pycache__/
+pages/__pycache__/
+wsgi.py
+settings.py
+manage.py
+asgi.py
+db.sqlite3
+migrations/

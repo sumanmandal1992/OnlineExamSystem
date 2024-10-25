@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title> Examination </title>
+		{% load bootstrap5 %}
+		{% bootstrap_css %}
+		{% bootstrap_javascript %}
+	</head>
+	<body>
+		<div class="container-fluid">
+			<div class="container-fluid p4 bg-primary form-control text-white">
+				<div class="row">
+					<div class="col-sm-9 text-center">
+						Some Exam - Date
+					</div>
+
+					<div class="col-sm-3 text-center">
+						<img src="#" width=100 height=100 alt="Candidate Image">
+						<p>Candidate Id</p>
+						<p>Candidate Name</p>
+						<p>tme</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="container-fluid p-5">
+				<div class="row">
+					<div class="col-sm">
+						<form action="/exam/qns/" method="post" id="qn_form">
+							{% csrf_token %}
+							{{ stddbform.non_field_errors }}
+							<div class="row p-3">
+								<label for="qno" id="qno" value="{{ qn_no }}">Q{{ qn_no }}. {{ question }}</label>
+							</div>
+							<div class="row p-3">
+								{{ qform.choice.errors }}
+								{{ qform.choice }}
+								{{ qform.ans.errors }}
+								{{ qform.ans }}
+								{{ qform.qn_jump.errors }}
+								{{ qform.qn_jump }}
+							</div> 
+
+						</form> 
+						<div class="row pt-5">
+							<div class="d-flex justify-content-end">
+								<div class="p-2">
+									<button type="submit" id="prev_btn" class="btn btn-primary" onclick="prevqn()">&lt;&nbsp;Preview</button>
+								</div>
+								<div class="p-2">
+									<button type="submit" id="next_btn" class="btn btn-primary" onclick="nextqn()">Next&nbsp;&gt;</button>
+								</div>
+							</div>
+						</div>
+						<div class="row pt-5">
+							<div class="d-flex justify-content-end">
+								<div class="p-2">
+									<button type="submit" id="submit_btn" class="btn btn-primary" onclick="submitqn()">Submit</button>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-sm-2 text-center border-start border-primary bg-light">
+						<p>Jump to question</p>
+						{% load custom_tags %}
+						{% for i in qn_max|times %}
+						{% with i|increase_1 as j %}
+						{% if j|less_10 %}
+						<button type="submit" class="btn btn-primary m-1" name="btn_jmp" id="btn_{{j}}" value="{{j}}" onclick="jumpqn({{j}})">0{{j}}</button>
+						{% else %}
+						<button type="submit" class="btn btn-primary m-1" name="btn_jmp" id="btn_{{j}}" value="{{j}}" onclick="jumpqn({{j}})">{{j}}</button>
+						{% endif %}
+						{% endwith %}
+						{% endfor %}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<form action="/exam/secure/" method="post" id="secure_exam">
+			{% csrf_token %}
+		</form>
+
+		<script type="text/javascript">
+				window.onblur = function() {
+					alert("Your exam will be submitted in 5 sec.");
+					// document.getElementById("secure_exam").submit();
+				};
+
+				window.onvisibilitychange = function() {
+					alert("Your exam will be submitted in 5 sec.");
+					// document.getElementById("secure_exam").submit();
+				};
+
+				window.onfocus = function() {
+					console.log("Resuming...");
+				};
+
+				window.onload = function() {
+					const choices = document.getElementsByName("choice");
+					const ans = document.getElementById('ans_id').value;
+					if(ans!="None"){
+						choices[ans-1].checked=true;
+					}
+					const jmpbtns = document.getElementsByName("btn_jmp");
+					const anslist = JSON.parse("{{anslist}}");
+					for(var i=0; i<anslist.length; i++) {
+						btn = jmpbtns[anslist[i]-1];
+						btn.style.backgroundColor = "green";
+					}
+				};
+
+				function nextqn() {
+					const frm = document.getElementById("qn_form");
+					frm.submit();
+				}
+
+				function prevqn() {
+					const frm = document.getElementById("qn_form");
+					frm.setAttribute("action", "/exam/qns/saveprev/");
+					frm.submit();
+				}
+
+				function jumpqn(qid) {
+					const frm = document.getElementById("qn_form");
+					const qn_id = document.getElementById("qn_id");
+					qn_id.setAttribute("value",qid);
+					frm.setAttribute("action", "/exam/qns/savejump/");
+					frm.submit();
+				}
+
+				function submitqn() {
+					const frm = document.getElementById("qn_form");
+					frm.setAttribute("action", "/exam/qns/submit/");
+					frm.submit();
+				}
+		</script>
+	</body>
+</html>

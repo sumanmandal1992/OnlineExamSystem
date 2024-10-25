@@ -1,0 +1,204 @@
+{% extends "master.html" %}
+
+{% block title %}
+Home
+{% endblock %}
+
+{% block content %}
+	<nav>
+		<div class="nav nav-tabs" id="nav-tab" role="tablist">
+		<button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true">Home</button>
+		<button class="nav-link" id="nav-about-tab" data-bs-toggle="tab" data-bs-target="#nav-about" type="button" role="tab" aria-controls="nav-about" aria-selected="false">About</button>
+		<button class="nav-link" id="nav-std-tab" data-bs-toggle="tab" data-bs-target="#nav-std" type="button" role="tab" aria-controls="nav-std" aria-selected="false">Students</button>
+		<button class="nav-link" id="nav-admin-tab" data-bs-toggle="tab" data-bs-target="#nav-admin" type="button" role="tab" aria-controls="nav-admin" aria-selected="false">Administrator</button>
+		</div>
+	</nav>
+	<div class="tab-content" id="nav-tabContent">
+
+	<div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab" tabindex="0">
+		<dl>
+			<dt>
+				Home
+			</dt>
+			<dd>
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+				Content about event, change of date, result decalration, important links etc.
+			</dd>
+		</dl>
+	</div>
+
+	<div class="tab-pane fade" id="nav-about" role="tabpanel" aria-labelledby="nav-about-tab" tabindex="0">
+		<dl>
+			<dt>
+				About
+			</dt>
+			<dd>
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+				Content about institution and application.
+			</dd>
+		</dl>
+	</div>
+
+	<div class="tab-pane fade" id="nav-std" role="tabpanel" aria-labelledby="nav-std-tab" tabindex="0">
+		<div class="row">
+			<div class="col-sm-7 bg-light border-end border-primary">
+				<fieldset id="examguide">
+					<legend>Important Information</legend>
+					<ul>
+						<li>The following events will submit your exam within 5 seconds.
+							<ul>
+								<li>Switch the browser tab.</li>
+								<li>Close the tab.</li>
+								<li>Close the browser.</li>
+								<li>Press on back button of the browser.</li>
+							</ul>
+						</li>
+					</ul>
+				</fieldset>
+			</div>
+			<div class="col-sm bg-light border-start border-primary">
+				<div class="row container-fluid bg-warning" id="std_log_warning"></div>
+				<div class="row">
+					<fieldset>
+						<legend>Student Login</legend>
+						<form action="/exam/" method="post">
+							{% csrf_token %}
+							{{ stdlogin.non_field_errors }}
+							<div class="mb-3 mt-3">
+								{{ stdlogin.student_id.errors }}
+								<label for="{{ stdlogin.student_id.id_for_label }}" class="form-label">Student id</label>
+								{{ stdlogin.student_id }}
+								{{ stdlogin.log_failed.errors }}
+								{{ stdlogin.log_failed }}
+							</div>
+							<div class="mb-3">
+								{{ stdlogin.std_passwd.errors }}
+								<label for="{{ stdlogin.std_passwd.id_for_label }}" class="form-label">Password</label>
+								{{ stdlogin.std_passwd }}
+							</div>
+							<button type="submit" class="btn btn-primary">Login</button>
+						</form>
+					</fieldset>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="tab-pane fade" id="nav-admin" role="tabpanel" aria-labelledby="nav-admin-tab" tabindex="0">
+		<div class="row">
+			<div class="col-sm-7 bg-light border-end border-primary">
+				<fieldset>
+					<legend>Information</legend>
+					Information about administrator and controls
+				</fieldset>
+			</div>
+			<div class="col-sm bg-light border-start border-primary">
+				<div class="row container-fluid bg-warning" id="admin_log_warning"></div>
+				<div class="row">
+					<fieldset>
+						<legend>Administrator Login</legend>
+						<form action="/super/" method="post">
+							{% csrf_token %}
+							{{ adminform.non_field_errors }}
+							<div class="mb-3 mt-3">
+								{{ adminform.admin_id.errors }}
+								<label for="{{ adminform.admin_id.id_for_label }}" class="form-label">Administrator id</label>
+								{{ adminform.admin_id }}
+							</div>
+							<div class="mb-3">
+								{{ adminform.username.errors }}
+								<label for="adminform.username.id_for_label" class="form-label">User name</label>
+								{{ adminform.username }}
+							</div>
+							<div class="mb-3">
+								{{ adminform.admin_passwd.errors }}
+								<label for="{{ adminform.admin_passwd.id_for_label }}" class="form-label">Password</label>
+								{{ adminform.admin_passwd }}
+							</div>
+							{{ adminform.log_failed }}
+							<button type="submit" class="btn btn-primary">Login</button>
+						</form>
+					</fieldset>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	</div>
+
+<script type="text/javascript">
+window.onload = function() {
+	const std_stats = document.getElementById("std_log_stats").value;
+	const admin_stats = document.getElementById("admin_log_stats").value;
+
+	const btn_home = document.getElementById("nav-home-tab");
+	const btn_std = document.getElementById("nav-std-tab");
+	const btn_admin = document.getElementById("nav-admin-tab");
+	const area_home = document.getElementById("nav-home");
+	const area_std = document.getElementById("nav-std");
+	const area_admin = document.getElementById("nav-admin");
+
+	const area_active_class="tab-pane fade show active"
+	const area_inactive_class="tab-pane fade"
+	const class_active = "nav-link active";
+	const class_inactive = "nav-link";
+	const aria_selected_active = "true";
+	const aria_selected_inactive = "false";
+
+	if(std_stats==1) {
+		btn_std.setAttribute("class", class_active);
+		btn_std.setAttribute("aria-selected", aria_selected_active);
+		btn_home.setAttribute("class", class_inactive);
+		btn_home.setAttribute("aria-selected", aria_selected_inactive);
+		area_home.setAttribute("class", area_inactive_class);
+		area_std.setAttribute("class", area_active_class);
+		std_login_warning();
+	}
+
+	if(admin_stats==1) {
+		btn_admin.setAttribute("class", class_active);
+		btn_admin.setAttribute("aria-selected", aria_selected_active);
+		btn_home.setAttribute("class", class_inactive);
+		btn_home.setAttribute("aria-selected", aria_selected_inactive);
+		area_home.setAttribute("class", area_inactive_class);
+		area_admin.setAttribute("class", area_active_class);
+		admin_login_warning();
+	}
+};
+
+function std_login_warning() {
+	const para = document.createElement("p");
+	const text = document.createTextNode("Wrong user name or id or password.");
+	para.setAttribute("class", "text-center text-danger mt-3");
+	para.appendChild(text);
+	const std_div = document.getElementById("std_log_warning");
+	std_div.appendChild(para);
+}
+
+function admin_login_warning() {
+	const para = document.createElement("p");
+	const text = document.createTextNode("Wrong login id or password.");
+	para.setAttribute("class", "text-center text-danger mt-3");
+	para.appendChild(text);
+	const std_div = document.getElementById("admin_log_warning");
+	std_div.appendChild(para);
+}
+</script>
+{% endblock %}
