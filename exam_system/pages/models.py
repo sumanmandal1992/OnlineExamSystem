@@ -1,9 +1,10 @@
+from django.contrib import admin
 from django.db import models
 from django.utils.timezone import now
 
 
 # Create your models here.
-class HomeNode(models.Model):
+class HomeNote(models.Model):
     note_id = models.IntegerField(unique=True)
     note_date = models.DateField(default=now)
     note_title = models.CharField(max_length=255)
@@ -31,7 +32,6 @@ class AdminNote(models.Model):
     note = models.TextField()
 
 
-
 class StudentAccounts(models.Model):
     roll=models.CharField(max_length=50, unique=True)
     passwd=models.CharField(max_length=255)
@@ -57,7 +57,7 @@ class Questions(models.Model):
     questions = models.TextField(unique=True)
     choices = models.TextField(choices=ans_choices)
 
-    
+
 class AdminAccount(models.Model):
     user_name = models.CharField(max_length=50, unique=True)
     user_id = models.CharField(max_length=50, unique=True)
@@ -76,3 +76,7 @@ class Administrator(models.Model):
 class ans_1234(models.Model):
     qn_no = models.IntegerField(unique=True)
     choice = models.IntegerField(null=True)
+
+
+# Register to admin site
+admin.register(HomeNote, AboutInfo, StudentNote, AdminNote, Students, Questions)

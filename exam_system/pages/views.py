@@ -1,18 +1,32 @@
 from django.db.models.deletion import models
 from django.db.models.fields.json import json
 from django.shortcuts import HttpResponseRedirect, render
+from django.contrib import admin
+from django.core.management import call_command
 import hashlib as hash
-import ast
+import ast, sys
 
-from .models import AdminAccount, Questions, StudentAccounts, ans_1234
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import *
 
 from .forms import AdminForm, StudentLoginForm, QnsDbFileForm, QuestionForm, StdDbFileForm
 
 
 # Create your views here.
+# Convert to class object
+def get_class(class_name):
+    return getattr(sys.modules[__name__], class_name)
+
+# Global data
+class SharedData:
+    ansdb = ans_1234.objects
+    qnsdb = Questions.objects
+    qns_serial = 0
+    qns_max = qnsdb.values().count()
+    anslist = ansdb.values_list('qn_no', flat=True)
+
 # Home page
-qdbs = Questions.objects
-ansdb = ans_1234.objects
 def index_page(request):
     template = 'index.html'
     context = { 'stdlogin': StudentLoginForm(), 'adminform': AdminForm() }
@@ -26,11 +40,15 @@ def get_std_login_info(request):
         if form.is_valid():
             stdid = form.cleaned_data['student_id']
             stdpwd = form.cleaned_data['std_passwd'].encode('ascii')
+            # Answer database
+            ansdbclass = get_class('ans_'+stdid)
+            SharedData.ansdb = ansdbclass.objects
 
+            # Encryption
             sha = hash.sha512()
             sha.update(stdpwd)
             stdpwd = sha.hexdigest()
-            
+
             stdacdb = StudentAccounts.objects.filter(roll=stdid).values()
             stddbpwd = None
             if stdacdb.exists():
@@ -50,14 +68,9 @@ def get_std_login_info(request):
         return render(request, template, context)
 
 
-i = 0
-i_m = qdbs.values().count()
-j_m = ansdb.values().count()
 def exam_qns_and_save_next(request):
-    global i
-    qn_max = i_m
-    anslist = ans_1234.objects.values_list('qn_no', flat=True)
-    anslist = json.dumps(list(anslist))
+    anslist = SharedData.ansdb.values_list('qn_no', flat=True)
+    anslist = json.dumps(list(SharedData.anslist))
     if request.method == "POST":
         form = QuestionForm(request.POST)
         val = request.POST.get('choice')
@@ -71,52 +84,50 @@ def exam_qns_and_save_next(request):
             if form.cleaned_data['choice']:
                 choice_select = int(form.cleaned_data['choice'])
 
-            if qdbs.exists() and choice_select != None:
-                ans_1234.objects.update_or_create(qn_no=qdbs.values()[i]['qn_no'], defaults={'choice': choice_select})
+            if SharedData.qnsdb.exists() and choice_select != None:
+                SharedData.ansdb.update_or_create(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no'], defaults={'choice': choice_select})
 
-            if i<(qn_max-1):
-                i = i + 1
+            if SharedData.qns_serial<(SharedData.qns_max-1):
+                SharedData.qns_serial += 1
             else:
-                i = 0
+                SharedData.qns_serial = 0
             chs = None
             qn_no = None
             question = None
-            if qdbs.exists():
-                chs = ast.literal_eval(qdbs.values()[i]['choices'])
-                qn_no = qdbs.values()[i]['qn_no']
-                question = qdbs.values()[i]['questions']
+            if SharedData.qnsdb.exists():
+                chs = ast.literal_eval(SharedData.qnsdb.values()[SharedData.qns_serial]['choices'])
+                qn_no = SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']
+                question = SharedData.qnsdb.values()[SharedData.qns_serial]['questions']
 
             ans = None
-            if ansdb.exists():
-                if ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).exists():
-                    ans = ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).values()[0]['choice']
+            if SharedData.ansdb.exists():
+                if SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).exists():
+                    ans = SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).values()[0]['choice']
             form = QuestionForm(chs=chs, ans=ans)
-            context = { 'qn_max': qn_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
+            context = { 'qn_max': SharedData.qns_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
             template = 'exam.html'
             return render(request, template, context)
     else:
         chs = None
         qn_no = None
         question = None
-        if qdbs.exists:
-            chs = ast.literal_eval(qdbs.values()[i]['choices'])
-            qn_no = qdbs.values()[i]['qn_no']
-            question = qdbs.values()[i]['questions']
+        if SharedData.qnsdb.exists:
+            chs = ast.literal_eval(SharedData.qnsdb.values()[SharedData.qns_serial]['choices'])
+            qn_no = SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']
+            question = SharedData.qnsdb.values()[SharedData.qns_serial]['questions']
         ans = None
-        if ansdb.exists():
-            if ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).exists():
-                ans = ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).values()[0]['choice']
-            print(".....................ans", i, ans)
+        if SharedData.ansdb.exists():
+            if SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).exists():
+                ans = SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).values()[0]['choice']
         form = QuestionForm(chs=chs, ans=ans)
-        context = { 'qn_max': qn_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
+        context = { 'qn_max': SharedData.qns_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
         template = 'exam.html'
         return render(request, template, context)
 
 
 def qns_save_preview(request):
     global i
-    qn_max = i_m
-    anslist = ans_1234.objects.values_list('qn_no', flat=True)
+    anslist = SharedData.ansdb.values_list('qn_no', flat=True)
     anslist = json.dumps(list(anslist))
     if request.method == "POST":
         val=request.POST.get('choice')
@@ -130,57 +141,52 @@ def qns_save_preview(request):
             if form.cleaned_data['choice']:
                 choice_select = int(form.cleaned_data['choice'])
 
-            if qdbs.exists() and choice_select != None:
-                ans_1234.objects.update_or_create(qn_no=qdbs.values()[i]['qn_no'], defaults={'choice': choice_select})
+            if SharedData.qnsdb.exists() and choice_select != None:
+                SharedData.ansdb.update_or_create(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no'], defaults={'choice': choice_select})
 
-            if i>0:
-                i = i - 1
+            if SharedData.qns_serial>0:
+                SharedData.qns_serial -= 1
             else:
-                i = i_m-1
+                SharedData.qns_serial = SharedData.qns_max-1
             chs = None
             qn_no = None
             question = None
-            if qdbs.exists():
-                chs = ast.literal_eval(qdbs.values()[i]['choices'])
-                qn_no = qdbs.values()[i]['qn_no']
-                question = qdbs.values()[i]['questions']
+            if SharedData.qnsdb.exists():
+                chs = ast.literal_eval(SharedData.qnsdb.values()[SharedData.qns_serial]['choices'])
+                qn_no = SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']
+                question = SharedData.qnsdb.values()[SharedData.qns_serial]['questions']
 
             ans = None
-            if ansdb.exists():
-                if ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).exists():
-                    ans = ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).values()[0]['choice']
-                print(".....................ans", i, ans)
+            if SharedData.ansdb.exists():
+                if SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).exists():
+                    ans = SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).values()[0]['choice']
             form = QuestionForm(chs=chs, ans=ans)
-            context = { 'qn_max': qn_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
+            context = { 'qn_max': SharedData.qns_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
             template = 'exam.html'
             return render(request, template, context)
     else:
         chs = None
         qn_no = None
         question = None
-        if qdbs.exists():
-            chs = ast.literal_eval(qdbs.values()[i]['choices'])
-            qn_no = qdbs.values()[i]['qn_no']
-            question = qdbs.values()[i]['questions']
+        if SharedData.qnsdb.exists():
+            chs = ast.literal_eval(SharedData.qnsdb.values()[SharedData.qns_serial]['choices'])
+            qn_no = SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']
+            question = SharedData.qnsdb.values()[SharedData.qns_serial]['questions']
         ans = None
-        if ansdb.exists():
-            if ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).exists():
-                ans = ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).values()[0]['choice']
-            print(".....................ans", i, ans)
+        if SharedData.ansdb.exists():
+            if SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).exists():
+                ans = SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).values()[0]['choice']
         form = QuestionForm(chs=chs, ans=ans)
-        context = { 'qn_max': qn_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
+        context = { 'qn_max': SharedData.qns_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
         template = 'exam.html'
         return render(request, template, context)
 
 
 def qns_save_jump(request):
-    global i
-    qn_max = i_m
-    anslist = ans_1234.objects.values_list('qn_no', flat=True)
+    anslist = SharedData.ansdb.values_list('qn_no', flat=True)
     anslist = json.dumps(list(anslist))
     if request.method == "POST":
         val=request.POST.get('choice')
-        print("...........................",i)
         form = QuestionForm(request.POST)
         if val != None:
             choice=ast.literal_eval(val)
@@ -191,52 +197,49 @@ def qns_save_jump(request):
             if form.cleaned_data['choice']:
                 choice_select = int(form.cleaned_data['choice'])
 
-            if qdbs.exists() and choice_select != None:
-                ans_1234.objects.update_or_create(qn_no=qdbs.values()[i]['qn_no'], defaults={'choice': choice_select})
+            if SharedData.qnsdb.exists() and choice_select != None:
+                SharedData.ansdb.update_or_create(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no'], defaults={'choice': choice_select})
 
-            i = int(request.POST.get('qn_jump'))-1
+            SharedData.qns_serial = int(request.POST.get('qn_jump'))-1
 
             chs = None
             qn_no = None
             question = None
-            if qdbs.exists():
-                chs = ast.literal_eval(qdbs.values()[i]['choices'])
-                qn_no = qdbs.values()[i]['qn_no']
-                question = qdbs.values()[i]['questions']
+            if SharedData.qnsdb.exists():
+                chs = ast.literal_eval(SharedData.qnsdb.values()[SharedData.qns_serial]['choices'])
+                qn_no = SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']
+                question = SharedData.qnsdb.values()[SharedData.qns_serial]['questions']
 
             ans = None
-            if ansdb.exists():
-                if ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).exists():
-                    ans = ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).values()[0]['choice']
+            if SharedData.ansdb.exists():
+                if SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).exists():
+                    ans = SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).values()[0]['choice']
 
             form = QuestionForm(chs=chs, ans=ans)
-            context = { 'qn_max': qn_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
+            context = { 'qn_max': SharedData.qns_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
             template = 'exam.html'
             return render(request, template, context)
     else:
         chs = None
         qn_no = None
         question = None
-        if qdbs.exists():
-            chs = ast.literal_eval(qdbs.values()[i]['choices'])
-            qn_no = qdbs.values()[i]['qn_no']
-            question = qdbs.values()[i]['questions']
+        if SharedData.qnsdb.exists():
+            chs = ast.literal_eval(SharedData.qnsdb.values()[SharedData.qns_serial]['choices'])
+            qn_no = SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']
+            question = SharedData.qnsdb.values()[SharedData.qns_serial]['questions']
 
         ans = None
-        if ansdb.exists():
-            if ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).exists():
-                ans = ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).values()[0]['choice']
-            print(".....................ans", i, ans)
+        if SharedData.ansdb.exists():
+            if SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).exists():
+                ans = SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).values()[0]['choice']
 
         form = QuestionForm(chs=chs, ans=ans)
-        context = { 'qn_max': qn_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
+        context = { 'qn_max': SharedData.qns_max, 'qn_no': qn_no, 'question': question, 'qform': form, 'anslist': anslist }
         template = 'exam.html'
         return render(request, template, context)
 
 
 def submit_exam(request):
-    global i
-    qn_max = i_m
     if request.method == "POST":
         val=request.POST.get('choice')
         form = QuestionForm(request.POST)
@@ -249,8 +252,8 @@ def submit_exam(request):
             if form.cleaned_data['choice']:
                 choice_select = int(form.cleaned_data['choice'])
 
-            if qdbs.exists() and choice_select != None:
-                ans_1234.objects.update_or_create(qn_no=qdbs.values()[i]['qn_no'], defaults={'choice': choice_select})
+            if SharedData.qnsdb.exists() and choice_select != None:
+                SharedData.ansdb.update_or_create(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no'], defaults={'choice': choice_select})
 
             template = 'success.html'
             return render(request, template)
@@ -258,18 +261,18 @@ def submit_exam(request):
         chs = None
         qn_no = None
         question = None
-        if qdbs.exists():
-            chs = ast.literal_eval(qdbs.values()[i]['choices'])
-            qn_no = qdbs.values()[i]['qn_no']
-            question = qdbs.values()[i]['questions']
+        if SharedData.qnsdb.exists():
+            chs = ast.literal_eval(SharedData.qnsdb.values()[SharedData.qns_serial]['choices'])
+            qn_no = SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']
+            question = SharedData.qnsdb.values()[SharedData.qns_serial]['questions']
 
         ans = None
-        if ansdb.exists():
-            if ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).exists():
-                ans = ansdb.filter(qn_no=qdbs.values()[i]['qn_no']).values()[0]['choice']
+        if SharedData.ansdb.exists():
+            if SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).exists():
+                ans = SharedData.ansdb.filter(qn_no=SharedData.qnsdb.values()[SharedData.qns_serial]['qn_no']).values()[0]['choice']
 
         form = QuestionForm(chs=chs, ans=ans)
-        context = { 'qn_max': qn_max, 'qn_no': qn_no, 'question': question, 'qform': form }
+        context = { 'qn_max': SharedData.qns_max, 'qn_no': qn_no, 'question': question, 'qform': form }
         template = 'exam.html'
         return render(request, template, context)
 
@@ -315,29 +318,36 @@ def admin_panel(request):
     context={'stddbform': StdDbFileForm(), 'qnsdbform': QnsDbFileForm()}
     return render(request, template, context)
 
+
+@csrf_exempt
 def upload_std_db_file(request):
     if request.method == "POST":
         form = StdDbFileForm(request.POST, request.FILES)
         if form.is_valid():
+            file = request.FILES['file']
             #handle_uploaded_file(request.FILES["file"])
+            print("Uploaded file....",file.name)
             return HttpResponseRedirect("/super/upload/")
     else:
         form = StdDbFileForm()
     template = 'super.html'
-    context = { 'stddbform': form }
+    context = { 'stddbform': form, 'qnsdbform': QnsDbFileForm() }
     return render(request, template, context)
 
 
+@csrf_exempt
 def upload_qns_db_file(request):
     if request.method == "POST":
         form = QnsDbFileForm(request.POST, request.FILES)
         if form.is_valid():
+            file = request.FILES['file']
             #handle_uploaded_file(request.FILES["file"])
+            print("Uploaded file....",file.name)
             return HttpResponseRedirect("/super/upload/")
     else:
-        form = QnsDbFileForm()
+        file = QnsDbFileForm()
     template = 'super.html'
-    context = { 'qnsdbform': form }
+    context = { 'qnsdbform': QnsDbFileForm(), 'stddbform': StdDbFileForm() }
     return render(request, template, context)
 
 
@@ -348,10 +358,14 @@ def handle_uploaded_file(f):
 
 
 
-def generate_std_account(request):
+def generate_std_account(name):
+    name = 'Std'
     attrs = {
             'qn_no': models.IntegerField(max_length=4, unique=True),
             'choice': models.IntegerField(max_length=2),
             '__module__': 'pages.models'
     }
-    student = type("Std", (models.Model,), attrs)
+    std = type(name, (models.Model,), attrs)
+    admin.site.register(std)
+    call_command('makemigrations')
+    call_command('migrate')

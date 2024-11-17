@@ -14,14 +14,9 @@ Admin Panel
 			<div class="col-sm">
 				<fieldset class="border border-primary p-2">
 					<legend>Student Database</legend>
-					<form action="/super/upload/stddb" method="post">
+					<form action="/super/upload/stddb/" method="post" enctype="multipart/form-data">
 						{% csrf_token %}
 						{{ stddbform.non_field_errors }}
-						<div class="mb-3">
-							{{ stddbform.title.errors }}
-							<label for="{{stddbform.title.id_for_label}}" class="form-label">File title (If you want to change)</label>
-							{{stddbform.title}}
-						</div>
 						<div class="mb-3">
 							{{ stddbform.file.errors }}
 							<label for="{{stddbform.file.id_for_label}}" class="form-label">Upload student database file (xls, xlsx and csv file format only)</label>
@@ -34,14 +29,9 @@ Admin Panel
 			<div class="col-sm">
 				<fieldset class="border border-primary p-2">
 					<legend>Question Database</legend>
-					<form action="/super/upload/qnsdb" method="post">
+					<form action="/super/upload/qnsdb/" method="post" enctype="multipart/form-data">
 						{% csrf_token %}
 						{{ qnsdbform.non_field_errors }}
-						<div class="mb-3">
-							{{ qnsdbform.title.errors }}
-							<label for="{{qnsdbform.title.id_for_label}}" class="form-label">File title (If you want to change)</label>
-							{{qnsdbform.title}}
-						</div>
 						<div class="mb-3">
 							{{ qnsdbform.file.errors }}
 							<label for="{{qnsdbform.file.id_for_label}}" class="form-label">Upload qestion database file (xls, xlsx and csv file format only)</label>
