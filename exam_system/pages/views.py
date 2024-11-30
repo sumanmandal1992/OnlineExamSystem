@@ -319,15 +319,12 @@ def admin_panel(request):
     return render(request, template, context)
 
 
-@csrf_exempt
 def upload_std_db_file(request):
     if request.method == "POST":
         form = StdDbFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = request.FILES['file']
-            #handle_uploaded_file(request.FILES["file"])
-            print("Uploaded file....",file.name)
-            return HttpResponseRedirect("/super/upload/")
+        file = request.FILES['file']
+        handle_uploaded_file(file)
+        return HttpResponseRedirect("/super/upload/")
     else:
         form = StdDbFileForm()
     template = 'super.html'
@@ -335,27 +332,24 @@ def upload_std_db_file(request):
     return render(request, template, context)
 
 
-@csrf_exempt
 def upload_qns_db_file(request):
     if request.method == "POST":
         form = QnsDbFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = request.FILES['file']
-            #handle_uploaded_file(request.FILES["file"])
-            print("Uploaded file....",file.name)
-            return HttpResponseRedirect("/super/upload/")
+        file = request.FILES['file']
+        handle_uploaded_file(file)
+        return HttpResponseRedirect("/super/upload/")
     else:
-        file = QnsDbFileForm()
+        form = QnsDbFileForm()
     template = 'super.html'
-    context = { 'qnsdbform': QnsDbFileForm(), 'stddbform': StdDbFileForm() }
+    context = { 'qnsdbform': form, 'stddbform': StdDbFileForm() }
     return render(request, template, context)
 
 
 def handle_uploaded_file(f):
-    with open('some/file/name.txt', 'wb+') as dest:
-        for chunk in f.chunks():
-            dest.write(chunk)
-
+    print("Uploaded file: ", f)
+    #with open('some/file/name.txt', 'wb+') as dest:
+    #    for chunk in f.chunks():
+    #        dest.write(chunk)
 
 
 def generate_std_account(name):
