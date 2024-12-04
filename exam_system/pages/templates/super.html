@@ -58,6 +58,23 @@ Admin Panel
 				</fieldset>
 			</div>
 		</div>
+		<div class="row mt-2">
+			<div class="col-sm">
+				<fieldset class="border border-primary p-2">
+					<legend>See Database</legend>
+					<form action="/super/upload/viewdb/" method="post">
+						{% csrf_token %}
+						{{ querydb.non_field_errors }}
+						<div class="mb-3">
+							{{ querydb.database.errors }}
+							<label for="{{querydb.database.id_for_label}}" class="form-label">Databases: </label>
+							{{querydb.database}}
+						</div>
+						<button type="submit" class="btn btn-primary">Submit</button>
+					</form>
+				</fieldset>
+			</div>
+		</div>
 	</div>
 </div>
 {% endblock %}

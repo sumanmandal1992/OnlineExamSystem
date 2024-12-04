@@ -1,8 +1,12 @@
+from django.conf import Path
+from django.contrib.admin.templatetags.admin_urls import template
 from django.db.models.deletion import models
 from django.db.models.fields.json import json
 from django.shortcuts import HttpResponseRedirect, render
 from django.contrib import admin
 from django.core.management import call_command
+from django.apps import apps
+import pandas as pd
 import hashlib as hash
 import ast, sys
 
@@ -10,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .models import *
 
-from .forms import AdminForm, StudentLoginForm, QnsDbFileForm, QuestionForm, StdDbFileForm
+from .forms import AdminForm, QueryDbForm, StudentLoginForm, QnsDbFileForm, QuestionForm, StdDbFileForm
 
 
 # Create your views here.
@@ -304,7 +308,7 @@ def get_admin_info(request):
             else:
                 form = AdminForm(log_failed=1)
                 template = 'index.html'
-                context = { 'adminform': form, 'stdlogin': StudentLoginForm() }
+                context = { 'adminform': form, 'stdlogin': StudentLoginForm()}
                 return render(request, template, context)
     else:
         form = AdminForm()
@@ -314,8 +318,9 @@ def get_admin_info(request):
 
 
 def admin_panel(request):
+    dblst = [('', 'Select')]+[(model.__name__, model.__name__) for model in apps.get_models()]
     template='super.html'
-    context={'stddbform': StdDbFileForm(), 'qnsdbform': QnsDbFileForm()}
+    context={'stddbform': StdDbFileForm(), 'qnsdbform': QnsDbFileForm(), 'querydb': QueryDbForm(dblst=dblst)}
     return render(request, template, context)
 
 
@@ -347,9 +352,36 @@ def upload_qns_db_file(request):
 
 def handle_uploaded_file(f):
     print("Uploaded file: ", f)
-    #with open('some/file/name.txt', 'wb+') as dest:
-    #    for chunk in f.chunks():
-    #        dest.write(chunk)
+    file = Path(str(f))
+    extension = file.suffix
+    print(extension)
+    df = None
+    if extension == '.csv':
+        df = pd.read_csv(f)
+    elif extension == '.xlsx' or extension == '.xls':
+        df = pd.read_excel(f)
+    else:
+        pass
+
+    if df is not None:
+        print(df)
+        headers = df.columns
+        cols = len(headers)
+        rows = len(df[headers[0]])
+
+        for i in range(rows):
+            print(df.iloc[i, 2:6])
+
+
+def view_databases(request):
+    dblst = [(model.__name__, model.__name__) for model in apps.get_models()]
+    if request.method == "POST":
+        print("Models: ", dblst)
+        return HttpResponseRedirect("/super/upload/")
+    else:
+        template = 'super.html'
+        context = { 'qnsdbform': QnsDbFileForm(), 'stddbform': StdDbFileForm() }
+        return render(request, template, context)
 
 
 def generate_std_account(name):

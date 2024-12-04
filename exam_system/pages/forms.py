@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.admin.options import widgets
 
 
 class StudentLoginForm(forms.Form):
@@ -50,3 +51,15 @@ class StdDbFileForm(forms.Form):
 class QnsDbFileForm(forms.Form):
     # title = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control'}))
     file = forms.FileField(widget=forms.TextInput(attrs={'type': 'file', 'class': 'form-control'}))
+
+
+class QueryDbForm(forms.Form):
+    CHOICES = [
+            ('', 'Select'),
+    ]
+    database = forms.ChoiceField(widget=forms.Select, choices=CHOICES, required=False)
+
+    def __init__(self, *args, **kwargs):
+        choice = kwargs.pop('dblst', [])
+        super(QueryDbForm, self).__init__(*args, **kwargs)
+        self.fields['database'].choices = choice

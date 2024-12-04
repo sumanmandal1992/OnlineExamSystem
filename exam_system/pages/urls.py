@@ -13,4 +13,5 @@ urlpatterns = [
     path('super/upload/', views.admin_panel, name='AdminPanel'),
     path('super/upload/stddb/', views.upload_std_db_file, name='StdDb'),
     path('super/upload/qnsdb/', views.upload_qns_db_file, name='QnsDb'),
+    path('super/upload/viewdb/', views.view_databases, name='ViewDb'),
 ]
